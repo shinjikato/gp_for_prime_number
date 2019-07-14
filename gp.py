@@ -1,3 +1,5 @@
+import numpy as np
+import base
 
 class GPRegressor:
 	def __init__(self):
