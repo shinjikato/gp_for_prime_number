@@ -1,4 +1,4 @@
-# Genetic Programming for Searching Prime Number.
+# Genetic Programming for Searching Prime Number Function.
 遺伝的プログラミングで素数関数を探索する
 
 # run
@@ -8,7 +8,7 @@
 import gp
 import prime_number
 
-x,y = prime_number.create(N=100,index_start=0)
+X,y = prime_number.create(N=100,start_index=0)
 model = gp.GPRegressor()
 model.fit(X,y)
 train_MSE = model.score(X,y)
