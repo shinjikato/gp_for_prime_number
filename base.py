@@ -99,7 +99,7 @@ class Tree(list):
 
 
 def createTree(nodeSet,leafSet):
-	height = random.randint(5,10)
+	height = random.randint(5,5)
 	items = []
 	stack = [0]
 	while len(stack) != 0:
