@@ -11,7 +11,7 @@ class Tree(list):
 	def height(self):
 		stack = [0]
 		max_depth = 0
-		for elem in self:
+		for node in self:
 			depth = stack.pop()
 			max_depth = max(max_depth, depth)
 			stack.extend([depth+1]*node[2])
@@ -22,26 +22,81 @@ class Tree(list):
 		while total > 0:
 			total += self[end][2] - 1
 			end += 1
-		return slice(begin, end)
+		return end
 	def __str__(self):
 		stack = []
 		for node in self[::-1]:
 			name,func,arity,const = node
 			stack.append(name +  "("+ ",".join([stack.pop() for _ in range(arity)])+")" if arity!=0 else name)
 		return stack[0]
-	def run(X):
-		x = X.T
+	def run(self, X):
+		ones = np.ones(len(X))
+		x = X.flatten()
 		stack = []
 		for node in self[::-1]:
 			name,func,arity,const = node
 			if name == "x":
 				func_ret = x
 			elif arity == 0:
-				func_ret = np.ones(len(x)) * const
+				func_ret = ones * const
 			else:
 				func_ret = func(*[stack.pop() for _ in range(arity)])
 			stack.append(func_ret)
 		return stack[0]
+	def toTexText(self):
+		trans_dict = {
+		"add":lambda a,b:"({}+{})".format(a,b),
+		"sub":lambda a,b:"({}-{})".format(a,b),
+		"mul":lambda a,b:"{}{}".format(a,b),
+		"div":lambda a,b:"\\frac{{{0}}}{{{1}}}".format(a,b),
+		"sin":lambda a:"\\sin({})".format(a),
+		"cos":lambda a:"\\cos({})".format(a),
+		"tan":lambda a:"\\tan({})".format(a),
+		"log":lambda a:"\\log({})".format(a),
+		"exp":lambda a:"\\exp({})".format(a),
+		"sqrt":lambda a:"\\sqrt{{{0}}}".format(a),
+		"-1":lambda : "-1",
+		"0":lambda : "0",
+		"1":lambda : "1",
+		"0.5":lambda : "0.5",
+		"pi":lambda : "\\pi",
+		"e":lambda : "e",
+		"x":lambda : "x",
+		}
+		stack = []
+		for node in self[::-1]:
+			name,func,arity,const = node
+			trans_func = trans_dict[name]
+			stack.append(trans_func(*[stack.pop() for _ in range(arity)]))
+		return stack[0]
+	def toSympyInputText(self):
+		trans_dict = {
+		"add":lambda a,b:"({}+{})".format(a,b),
+		"sub":lambda a,b:"({}-{})".format(a,b),
+		"mul":lambda a,b:"{}*{}".format(a,b),
+		"div":lambda a,b:"{}/{}".format(a,b),
+		"sin":lambda a:"sin({})".format(a),
+		"cos":lambda a:"cos({})".format(a),
+		"tan":lambda a:"tan({})".format(a),
+		"log":lambda a:"log({})".format(a),
+		"exp":lambda a:"exp({})".format(a),
+		"sqrt":lambda a:"{}**(1/2)".format(a),
+		"-1":lambda : "-1",
+		"0":lambda : "0",
+		"1":lambda : "1",
+		"0.5":lambda : "0.5",
+		"pi":lambda : "pi",
+		"e":lambda : "e",
+		"x":lambda : "x",
+		}
+		stack = []
+		for node in self[::-1]:
+			name,func,arity,const = node
+			trans_func = trans_dict[name]
+			stack.append(trans_func(*[stack.pop() for _ in range(arity)]))
+		return stack[0]
+
+
 
 def createTree(nodeSet,leafSet):
 	height = random.randint(5,10)
@@ -59,14 +114,16 @@ def createTree(nodeSet,leafSet):
 	return tree
 
 def swap_tree(treeA, treeB, limit):
-	if len(treeA) == 1 or len(treeB) ==0:
+	if len(treeA) == 1 or len(treeB) == 1:
 		return treeA, treeB
 	for _ in range(100):#safty loop
 		s_A = random.randrange(1,len(treeA))
 		s_B = random.randrange(1,len(treeB))
 		e_A = treeA.subtree(s_A)
-		e_B = treeA.subtree(s_B)
+		e_B = treeB.subtree(s_B)
+
 		treeA[s_A:e_A],treeB[s_B:e_B] = treeB[s_B:e_B],treeA[s_A:e_A]
+
 		if treeA.height <= limit and treeB.height <= limit:
 			break
 		treeA[s_A:s_A+(e_B-s_B)],treeB[s_B:s_B+(e_A-s_A)] =treeB[s_B:s_B+(e_A-s_A)],treeA[s_A:s_A+(e_B-s_B)]
@@ -96,10 +153,10 @@ def makeNodeSet():
 	nodeSet.append(("exp",	np.exp,			1,	None))
 	nodeSet.append(("sqrt",	np.sqrt,		1,	None))
 
-	leafSet.append(("-1",	None,			0,	-1))
-	leafSet.append(("0",	None,			0,	0))
-	leafSet.append(("1",	None,			0,	1))
-	leafSet.append(("0.5",	None,			0,	0.5))
+	#leafSet.append(("-1",	None,			0,	-1))
+	#leafSet.append(("0",	None,			0,	0))
+	#leafSet.append(("1",	None,			0,	1))
+	#leafSet.append(("0.5",	None,			0,	0.5))
 	leafSet.append(("pi",	None,			0,	np.pi))
 	leafSet.append(("e",	None,			0,	np.e))
 	leafSet.append(("x",	None,			0,	None))
@@ -112,10 +169,10 @@ def initial_population(N, nodeSet, leafSet):
 def evaluation(pop, X, y):
 	for tree in pop:
 		if tree.fitness == None:
-			_y = tree.run(X,y)
-			errors = (y-_y)**2
+			_y = tree.run(X)
+			errors = np.abs(y-_y)
 			fitness = np.sum(errors)/len(y)
-			if np.isfinite(fitness):
+			if np.isfinite(fitness) and fitness < 9999999999:
 				tree.fitness = fitness
 				tree.errors = errors
 			else:
@@ -126,19 +183,19 @@ def selection(pop,elite, batch_size=8, tour_size=64):
 	pop_size = len(pop)
 	pop = [tree for tree in pop if tree.fitness != None]
 	best = min(pop, key=lambda tree:tree.fitness)
-	if elite.fitness == None or best.fitness < elite.fitness:
+	if elite == None or best.fitness < elite.fitness:
 		elite = deepcopy(best)
 	T = np.arange(len(pop[0].errors))
 	np.random.shuffle(T)
 	t_start = 0
 	next_pop = []
-	for _ in range(pop_size):
+	for _ in range(pop_size-1):
 		best = None
 		best_ave = 0
 		subpop = random.sample(pop,tour_size) if len(pop) > tour_size else pop
 		t_end = t_start + batch_size if (t_start + batch_size) < len(T) else len(T)
-		for i,tree in enumerate(subpop):
-			ave = sum([tree.errors[t] for t in T[t_start:t_end]])/batch_size
+		for tree in subpop:
+			ave = np.sum([tree.errors[t] for t in T[t_start:t_end]])/batch_size
 			if best == None or ave < best_ave:
 				best = tree
 				best_ave = ave
@@ -146,12 +203,12 @@ def selection(pop,elite, batch_size=8, tour_size=64):
 		t_start = t_end
 		if t_start == len(T):
 			t_start = 0
-	pop.append(deepcopy(elite))
-	return pop, elite
+	next_pop.append(deepcopy(elite))
+	return next_pop, elite
 
 
 def crossover(pop, CXPB, limit):
-	random.shuffle(pop)
+	#random.shuffle(pop)
 	for i in range(int(len(pop)/2)):
 		if random.random() < CXPB:
 			pop[i*2], pop[i*2+1] = swap_tree(pop[i*2], pop[i*2+1],limit)
@@ -160,7 +217,7 @@ def crossover(pop, CXPB, limit):
 	return pop
 
 def mutation(pop, MUTPB, nodeSet, leafSet):
-	random.shuffle(pop)
+	#random.shuffle(pop)
 	for i in range(int(len(pop)/2)):
 		pop[i] = point_change(pop[i], nodeSet, leafSet, MUTPB)
 		pop[i].fitness = None
