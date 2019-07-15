@@ -17,16 +17,3 @@ print(model.score(X, y))
 print(model.score(test_X, test_y))
 ```
 
-
-
-
-# Compare with Machine Learning
-機械学習との比較
-比較手法
-
-- Full Connection Neural Network(=Multi Layer Perceptron)
-- Light GBM
-- XGBoost
-- Random Forest
-- Linear Regression
-
